@@ -10,7 +10,8 @@ AS
 -- Question 1i
 CREATE VIEW q1i(namefirst, namelast, birthyear)
 AS
-  SELECT namefirst, namelast, birthyear
+  SELECT
+  namefirst, namelast, birthyear
   FROM people
   WHERE weight > 300;
 ;
@@ -18,7 +19,8 @@ AS
 -- Question 1ii
 CREATE VIEW q1ii(namefirst, namelast, birthyear)
 AS
-  SELECT namefirst, namelast, birthyear
+  SELECT
+  namefirst, namelast, birthyear
   FROM people
   WHERE namefirst
   LIKE '% %';
@@ -27,7 +29,8 @@ AS
 -- Question 1iii
 CREATE VIEW q1iii(birthyear, avgheight, count)
 AS
-  SELECT birthyear, AVG(height), COUNT(*)
+  SELECT
+  birthyear, AVG(height), COUNT(*)
   FROM people
   GROUP BY birthyear
   ORDER BY birthyear;
@@ -36,7 +39,8 @@ AS
 -- Question 1iv
 CREATE VIEW q1iv(birthyear, avgheight, count)
 AS
-  SELECT birthyear, AVG(height), COUNT(*)
+  SELECT
+  birthyear, AVG(height), COUNT(*)
   FROM people
   GROUP BY birthyear
   HAVING AVG(height) > 70
@@ -46,7 +50,8 @@ AS
 -- Question 2i
 CREATE VIEW q2i(namefirst, namelast, playerid, yearid)
 AS
-  SELECT namefirst, namelast, people.playerid, yearid
+  SELECT
+  namefirst, namelast, people.playerid, yearid
   FROM people
   INNER JOIN halloffame
   ON people.playerid = halloffame.playerid
@@ -57,7 +62,8 @@ AS
 -- Question 2ii
 CREATE VIEW q2ii(namefirst, namelast, playerid, schoolid, yearid)
 AS
-  SELECT namefirst, namelast, people.playerid, schools.schoolid, halloffame.yearid
+  SELECT
+  namefirst, namelast, people.playerid, schools.schoolid, halloffame.yearid
   FROM people
   INNER JOIN halloffame
   ON people.playerid = halloffame.playerid
@@ -72,7 +78,8 @@ AS
 -- Question 2iii
 CREATE VIEW q2iii(playerid, namefirst, namelast, schoolid)
 AS
-  SELECT people.playerid, namefirst, namelast, schools.schoolid
+  SELECT
+  people.playerid, namefirst, namelast, schools.schoolid
   FROM people
   INNER JOIN halloffame
   ON people.playerid = halloffame.playerid
@@ -87,7 +94,8 @@ AS
 -- Question 3i
 CREATE VIEW q3i(playerid, namefirst, namelast, yearid, slg)
 AS
-  SELECT batting.playerid, namefirst, namelast, yearid, ((h - h2b - h3b - hr) + 2 * h2b + 3 * h3b + 4 * hr)/CAST(ab AS float) AS sg
+  SELECT
+  batting.playerid, namefirst, namelast, yearid, ((h - h2b - h3b - hr) + 2 * h2b + 3 * h3b + 4 * hr)/CAST(ab AS float) AS sg
   FROM batting
   INNER JOIN people
   ON batting.playerid = people.playerid
@@ -99,7 +107,8 @@ AS
 -- Question 3ii
 CREATE VIEW q3ii(playerid, namefirst, namelast, lslg)
 AS
-  SELECT batting.playerid, namefirst, namelast, ((SUM(h) - SUM(h2b) - SUM(h3b) - SUM(hr)) + 2 * SUM(h2b) + 3 * SUM(h3b) + 4 * SUM(hr))/CAST(SUM(ab) AS float) as lslg
+  SELECT
+  batting.playerid, namefirst, namelast, ((SUM(h) - SUM(h2b) - SUM(h3b) - SUM(hr)) + 2 * SUM(h2b) + 3 * SUM(h3b) + 4 * SUM(hr))/CAST(SUM(ab) AS float) as lslg
   FROM batting
   INNER JOIN people
   ON batting.playerid = people.playerid
@@ -112,7 +121,8 @@ AS
 -- Question 3iii
 CREATE VIEW q3iii(namefirst, namelast, lslg)
 AS
-  SELECT namefirst, namelast, ((SUM(h) - SUM(h2b) - SUM(h3b) - SUM(hr)) + 2 * SUM(h2b) + 3 * SUM(h3b) + 4 * SUM(hr))/CAST(SUM(ab) AS float) as lslg
+  SELECT
+  namefirst, namelast, ((SUM(h) - SUM(h2b) - SUM(h3b) - SUM(hr)) + 2 * SUM(h2b) + 3 * SUM(h3b) + 4 * SUM(hr))/CAST(SUM(ab) AS float) as lslg
   FROM batting
   INNER JOIN people
   ON batting.playerid = people.playerid
@@ -129,27 +139,83 @@ AS
 -- Question 4i
 CREATE VIEW q4i(yearid, min, max, avg, stddev)
 AS
-  SELECT 1, 1, 1, 1, 1 -- replace this line
+  SELECT
+  yearid, MIN(salary), MAX(salary), AVG(salary), STDDEV(salary)
+  FROM salaries
+  GROUP BY yearid
+  ORDER BY yearid;
 ;
 
 -- Question 4ii
 CREATE VIEW q4ii(binid, low, high, count)
 AS
-  SELECT 1, 1, 1, 1 -- replace this line
+  with SalaryMin AS (
+    SELECT MIN(salary)
+    FROM salaries
+    WHERE yearid = 2016
+  ), SalaryRange AS (
+    SELECT
+    (MAX(salary) - MIN(salary)) / 10 AS bucketsize
+    FROM salaries
+    WHERE yearid=2016
+  ), SalaryBins AS (
+    SELECT
+    salary,
+    LEAST(9, FLOOR((salary - (SELECT min FROM SalaryMin)) / (SELECT bucketsize FROM SalaryRange))) as binid
+    FROM salaries
+    WHERE yearid = 2016
+  )
+
+  SELECT
+  binid,
+  (SELECT min FROM SalaryMin) + binid * (SELECT bucketsize FROM SalaryRange) AS low,
+  (SELECT min FROM SalaryMin) + (binid + 1) * (SELECT bucketsize FROM SalaryRange) as high,
+  COUNT(binid)
+  FROM SalaryBins
+  GROUP BY binid
+  ORDER BY binid;
 ;
 
 -- Question 4iii
 CREATE VIEW q4iii(yearid, mindiff, maxdiff, avgdiff)
 AS
-  SELECT 1, 1, 1, 1 -- replace this line
+  SELECT
+  yearid,
+  MIN(Salary) - LAG(MIN(Salary)) OVER (ORDER BY yearid) as mindiff,
+  MAX(Salary) - LAG(MAX(Salary)) OVER (ORDER BY yearid) as maxdiff,
+  AVG(Salary) - LAG(AVG(Salary)) OVER (ORDER BY yearid) as avgdiff
+  FROM salaries
+  GROUP BY yearid
+  ORDER BY yearid
+  OFFSET 1;
 ;
 
 -- Question 4iv
 CREATE VIEW q4iv(playerid, namefirst, namelast, salary, yearid)
 AS
-  SELECT 1, 1, 1, 1, 1 -- replace this line
+  SELECT
+  people.playerid, people.namefirst, people.namelast, salary, salaries.yearid
+  FROM (
+    SELECT
+    yearid, MAX(Salary) AS maxsalary
+    FROM salaries
+    WHERE yearid in (2000, 2001)
+    GROUP BY yearid
+  ) MaxSalaries
+  INNER JOIN salaries
+  ON MaxSalaries.maxsalary = salaries.salary AND MaxSalaries.yearid = salaries.yearid
+  INNER JOIN people
+  ON salaries.playerid = people.playerid;
+
 ;
 -- Question 4v
 CREATE VIEW q4v(team, diffAvg) AS
-  SELECT 1, 1 -- replace this line
+  SELECT
+  allstarfull.teamid, MAX(salaries.salary) - MIN(salaries.salary) as diffavg
+  FROM allstarfull
+  INNER JOIN salaries
+  ON allstarfull.playerid = salaries.playerid and allstarfull.yearid = salaries.yearid
+  WHERE allstarfull.yearid = 2016
+  GROUP BY allstarfull.teamid
+  ORDER BY allstarfull.teamid;
 ;
